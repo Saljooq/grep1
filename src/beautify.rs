@@ -11,6 +11,7 @@ pub enum State {
 pub struct BeautifyLines {
     state: State,
     string: String,
+    start_ind: usize,
 }
 
 
@@ -20,8 +21,15 @@ impl BeautifyLines {
         BeautifyLines {
             state: state,
             string: string,
+            start_ind: 0
         }
 
+    }
+
+    pub fn set_start_ind(&mut self, ind: usize) -> &Self{
+        self.start_ind = ind;
+
+        self
     }
 
 
@@ -56,7 +64,7 @@ impl BeautifyLines {
 
         let vec_str = Self::limit_lines(self.string.lines());
 
-        for i in 0..vec_str.len() {
+        for i in self.start_ind..vec_str.len() {
 
             let line = vec_str.get(i).expect("");
     
