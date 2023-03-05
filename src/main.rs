@@ -6,6 +6,7 @@ mod beautify;
 use child::ChildPipedProcess;
 use beautify::BeautifyLines;
 use tokio_file_unix::raw_stdin;
+use colored::Colorize;
 
 fn main() {
 
@@ -28,7 +29,7 @@ fn main() {
             BeautifyLines::new(beautify::State::Body, grep_out).print();
         },
         None => {
-            println!("To see the grep match add an argument, for now printing all...");
+            println!("{}", "To see the grep match add an argument, for now printing all...".bright_yellow().blink());
             let cat_out = ChildPipedProcess::new("cat", &[], Some(&input_bfr)).process_output().output_to_str();
             BeautifyLines::new(beautify::State::Body, cat_out).set_start_ind(1).print();
         }
