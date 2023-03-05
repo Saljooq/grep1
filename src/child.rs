@@ -3,7 +3,7 @@ use std::process::{Command, Stdio};
 use tokio_file_unix::raw_stdin;
 
 pub struct ChildPipedProcess<'a> {
-    name: String,
+    name: &'a str,
     args: &'a [&'a str],
     output: Vec<u8>,
 }
@@ -11,7 +11,7 @@ pub struct ChildPipedProcess<'a> {
 impl <'a> ChildPipedProcess <'a>{
 
 
-    fn new(name: String, args: &[&str]) -> ChildPipedProcess<'a> {
+    pub fn new(name: &'a str, args: &'a [&'a str]) -> ChildPipedProcess<'a> {
         ChildPipedProcess {
             name: name,
             args: args,
@@ -19,7 +19,7 @@ impl <'a> ChildPipedProcess <'a>{
         }
     }
 
-    fn process_output(&self) -> &Self {
+    pub fn process_output(&mut self) -> &Self {
 
         let child_head = Command::new(self.name)
         .args(self.args)
@@ -34,25 +34,22 @@ impl <'a> ChildPipedProcess <'a>{
 
         drop(self.args);
 
-        let header_output = child_head
+        let mut header_output = child_head
             .wait_with_output()
             .expect("child-out").stdout;
-        
-        self.output = header_output;
+
+        self.output.append(&mut header_output);
+
+        // self.output.as_mut::<&mut Vec<u8>>().append(&mut header_output);
 
         self
-        // let header_str = String::from_utf8(header_output) 
-        // .expect("something went wrong with converting u8 vec to str");
+    }
 
-}
+    pub fn output_to_str(&self) -> String {
+        let out = String::from_utf8(self.output.to_vec()) 
+            .expect("something went wrong with converting u8 vec to str");
 
-fn output_to_str(&self) -> String {
-    let out = String::from_utf8(self.output) 
-        .expect("something went wrong with converting u8 vec to str");
-
-    out
-}
-
-
+        out
+    }
 
 }
