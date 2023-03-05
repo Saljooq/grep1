@@ -1,45 +1,68 @@
-use std::io::Read;
+// use std::io::{Read, Write};
+use std::process::Stdio;
 use std::{process::Command};
 use std::env;
 use term_size;
 use colored::Colorize;
 use tokio_file_unix::{raw_stdin};
 
+mod child;
+use child::ChildPipedProcess;
+
+
+// SOLUTION: https://stackoverflow.com/questions/49218599/write-to-child-process-stdin-in-rust
 fn main() {
 
 
-    let mut input = raw_stdin().expect("No input piped in");
+    let child_head = Command::new("head")
+        .arg("-n1")
+        .stdin(Stdio::from (
+            raw_stdin()
+                .expect("couldn't get the std in handle")
+            )
+        )
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("couldn't create the child");
 
-
-
-    let mut input_str= vec![];
-
-    input.read_to_end(&mut input_str).expect("something wend reading reading file");
-
-    let input = String::from_utf8(input_str)
-    .expect("something went wrong with converting input data piped in, to a string");
-
-    // println!("{}", &input);
-
-
-    let args: Vec<String> = env::args().collect();
-
-
-    let mut binding = Command::new("sh");
-    let ps = binding
-        .arg("-c")
-        .arg(format!("echo \"{}\" | head -n1 && echo \"{}\"  | grep ", &input, &input).to_string() + args.get(1).expect("argument expected"));
-
-
-    let output = String::from_utf8 (
-        ps
-        .output()
-        .expect("something went wrong with using ps")
-        .stdout
-    )
-    .expect("Could not covert ps res to string");
+    let header_output = child_head
+        .wait_with_output()
+        .expect("child-out").stdout;
     
-    let lines = output.lines();
+    let header_str = String::from_utf8(header_output) 
+    .expect("something went wrong with converting u8 vec to str");
+
+    let args = env::args()
+        .collect::<Vec<_>>();
+    
+    let grep_arg = args
+        .get(1)
+        .expect("You need atleast one argument for grep");
+
+
+
+    let child_grep = Command::new("grep")
+    .arg(grep_arg)
+    .stdin(Stdio::from (
+        raw_stdin()
+            .expect("couldn't get the std in handle")
+        )
+    )
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("couldn't create the child");
+
+    let grep_output = child_grep
+        .wait_with_output()
+        .expect("child-out").stdout;
+
+    let grep_str = String::from_utf8(grep_output)
+    .expect("something went wrong with converting u8 vec to str");
+
+
+
+    
+    let lines = grep_str.lines();
 
     let max_len = term_size::dimensions().expect("Couldn't get the terminal size").0;
 
@@ -52,7 +75,7 @@ fn main() {
     }).collect::<Vec<&str>>();
 
     // println!("ps output: \n");
-    println!("{}", output_new.get(0).expect("").on_black().bright_white().bold());
+    print!("{}", header_str.on_black().bright_white().bold());
     
     for _ in 0..max_len {
         print!("=")
@@ -60,7 +83,7 @@ fn main() {
 
     println!();
 
-    for i in 1..output_new.len() {
+    for i in 0..output_new.len() {
 
         let line = output_new.get(i).expect("");
 
