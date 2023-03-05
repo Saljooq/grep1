@@ -1,10 +1,25 @@
-use std::process::Command;
+use std::io::Read;
+use std::{process::Command};
 use std::env;
 use term_size;
 use colored::Colorize;
-use tokio_file_unix::{File, raw_stdin};
+use tokio_file_unix::{raw_stdin};
 
 fn main() {
+
+
+    let mut input = raw_stdin().expect("No input piped in");
+
+
+
+    let mut input_str= vec![];
+
+    input.read_to_end(&mut input_str).expect("something wend reading reading file");
+
+    let input = String::from_utf8(input_str)
+    .expect("something went wrong with converting input data piped in, to a string");
+
+    // println!("{}", &input);
 
 
     let args: Vec<String> = env::args().collect();
@@ -13,7 +28,7 @@ fn main() {
     let mut binding = Command::new("sh");
     let ps = binding
         .arg("-c")
-        .arg("export TMP_OUTPUT=$(ps -aux) && echo \"$TMP_OUTPUT\" | head -n1 && echo \"$TMP_OUTPUT\"  | grep ".to_string() + args.get(1).expect("argument expected"));
+        .arg(format!("echo \"{}\" | head -n1 && echo \"{}\"  | grep ", &input, &input).to_string() + args.get(1).expect("argument expected"));
 
 
     let output = String::from_utf8 (
