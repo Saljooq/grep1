@@ -1,46 +1,74 @@
-use std::process::{Command, Stdio};
-
-use tokio_file_unix::raw_stdin;
+use std::{process::{Command, Stdio}, io::Write};
 
 pub struct ChildPipedProcess<'a> {
     name: &'a str,
     args: &'a [&'a str],
+    piped_input: Option<&'a Vec<u8>>,
     output: Vec<u8>,
 }
 
 impl <'a> ChildPipedProcess <'a>{
 
 
-    pub fn new(name: &'a str, args: &'a [&'a str]) -> ChildPipedProcess<'a> {
+    pub fn new(name: &'a str, args: &'a [&'a str], piped_input: Option<&'a Vec<u8>>) -> ChildPipedProcess<'a> {
         ChildPipedProcess {
             name: name,
             args: args,
+            piped_input: piped_input,
             output: vec![],
         }
     }
 
     pub fn process_output(&mut self) -> &Self {
 
-        let child_head = Command::new(self.name)
-        .args(self.args)
-        .stdin(Stdio::from (
-            raw_stdin()
-                .expect("couldn't get the std in handle")
-            )
-        )
-        .stdout(Stdio::piped())
-        .spawn()
-        .expect("couldn't create the child");
+        match self.piped_input {
+            None => {
+                let child = Command::new(self.name)
+                    .args(self.args)
+                    .stdin(Stdio::inherit())
+                    .stdout(Stdio::piped())
+                    .spawn()
+                    .expect("couldn't create the child");
 
-        drop(self.args);
 
-        let mut header_output = child_head
-            .wait_with_output()
-            .expect("child-out").stdout;
+                drop(self.args);
 
-        self.output.append(&mut header_output);
+                let mut header_output = child
+                    .wait_with_output()
+                    .expect("child-out").stdout;
+        
+                self.output.append(&mut header_output);
+            },
+            Some(data) => {
+                
+                for b in data.chunks(32000) {
 
-        // self.output.as_mut::<&mut Vec<u8>>().append(&mut header_output);
+                    let mut process = Command::new(self.name)
+                    .args(self.args)
+                    .stdin(Stdio::piped())
+                    .stdout(Stdio::piped())
+                    .spawn()
+                    .expect("couldn't create the child");
+
+                    let child_stdin = process.stdin.as_mut().unwrap();
+
+
+                    child_stdin.write(b).expect("Something went wrong with writing chunks to the pipe");
+
+
+                    let mut header_output = process
+                        .wait_with_output()
+                        .expect("child-out").stdout;
+
+                    self.output.append(&mut header_output);
+
+
+                    
+                }
+
+            },
+        };
+
 
         self
     }
@@ -48,7 +76,6 @@ impl <'a> ChildPipedProcess <'a>{
     pub fn output_to_str(&self) -> String {
         let out = String::from_utf8(self.output.to_vec()) 
             .expect("something went wrong with converting u8 vec to str");
-
         out
     }
 
