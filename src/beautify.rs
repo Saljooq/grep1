@@ -1,6 +1,5 @@
-use std::str::Lines;
-
-use colored::Colorize;
+use std::str::{Lines};
+use colored::{Colorize, ColoredString};
 use term_size;
 
 pub enum State {
@@ -12,6 +11,7 @@ pub struct BeautifyLines {
     state: State,
     string: String,
     start_ind: usize,
+    grep_word: Option<String>,
 }
 
 
@@ -21,13 +21,20 @@ impl BeautifyLines {
         BeautifyLines {
             state: state,
             string: string,
-            start_ind: 0
+            start_ind: 0,
+            grep_word: None,
         }
 
     }
 
     pub fn set_start_ind(&mut self, ind: usize) -> &Self{
         self.start_ind = ind;
+
+        self
+    }
+
+    pub fn set_grep_blinker(&mut self, grep_word: String) -> &Self{
+        self.grep_word = Some(grep_word);
 
         self
     }
@@ -67,22 +74,61 @@ impl BeautifyLines {
         for i in self.start_ind..vec_str.len() {
 
             let line = vec_str.get(i).expect("");
-    
-            let colored_line = match i  % 4 {
-                0 => line.red(),
-                1 => line.bright_green(),
-                2 => line.yellow(),
-                _ => line.bright_magenta(),
-            };
-    
-    
-            println! (
-                "{}", 
-                colored_line
-            );
+
+            match &self.grep_word {
+                Some(grep_word) => {
+                    match line.find(grep_word) {
+                        Some(start_ind) => {
+                            let end_ind = start_ind + grep_word.len();
+
+                            print! (
+                                "{}", 
+                                Self::custom_colorize(i, &line[0..start_ind])
+                            );
+
+                            print! (
+                                "{}", 
+                                &line[start_ind..end_ind].blink()
+                            );
+
+                            print! (
+                                "{}", 
+                                Self::custom_colorize(i, &line[end_ind..])
+                            );
+                            
+                            println!();
+
+                        },
+                        None => {
+                            println! (
+                                "{}", 
+                                Self::custom_colorize(i, line)
+                            );
+                        },
+                    }
+
+
+                },
+                None => {
+                    println! (
+                        "{}", 
+                        Self::custom_colorize(i, line)
+                    );
+                },
+            }
         }
     
         
+    }
+
+    fn custom_colorize(i: usize, line: &str) -> ColoredString {
+
+        match i  % 4 {
+            0 => line.red(),
+            1 => line.bright_green(),
+            2 => line.yellow(),
+            _ => line.bright_magenta(),
+        }
     }
 
 

@@ -26,7 +26,7 @@ fn main() {
     match args.get(1) {
         Some(arg) => {
             let grep_out = ChildPipedProcess::new("grep", &[arg], Some(&input_bfr)).process_output().output_to_str();
-            BeautifyLines::new(beautify::State::Body, grep_out).print();
+            BeautifyLines::new(beautify::State::Body, grep_out).set_grep_blinker(arg.clone()).print();
         },
         None => {
             println!("{}", "To see the grep match add an argument, for now printing all...".bright_yellow().blink());
