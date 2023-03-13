@@ -71,6 +71,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3dcaa9ae7725d12cdb85b3ad99a434db70b468c09ded17e012d86b5c1010f7a7"
 
 [[package]]
+name = "grep1"
+version = "0.1.0"
+dependencies = [
+ "colored",
+ "term_size",
+ "tokio-file-unix",
+]
+
+[[package]]
 name = "hermit-abi"
 version = "0.1.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -166,15 +175,6 @@ name = "pin-project-lite"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "257b64915a082f7811703966789728173279bdebb956b143dbcd23f6f970a777"
-
-[[package]]
-name = "sh_exp"
-version = "0.1.0"
-dependencies = [
- "colored",
- "term_size",
- "tokio-file-unix",
-]
 
 [[package]]
 name = "slab"
